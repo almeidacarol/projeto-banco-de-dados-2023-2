@@ -1,2 +1,3 @@
-# projeto-banco-de-dados-2023-2
-hospital (equipe 04 SI)
+# BANCO DE DADOS - CIn UFPE
+
+- Projeto Hospital (equipe 04 SI)
