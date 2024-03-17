@@ -5,7 +5,7 @@
 ### Integrantes:
 - Caroline Almeida;
 - Diogo Nogueira;
-- Douglas Silva;
+- Douglas Araújo;
 - Ingrid Freire;
 - Hitalo Nascimento;
 - Otávio Augusto.
