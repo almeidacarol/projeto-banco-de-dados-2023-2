@@ -1,16 +1,16 @@
 -- GROUP BY/HAVING
--- Seleciona o nome dos hospitais cujo número de pacientes atendidos é maior que 1
-SELECT H.NOME, COUNT(*) 
-    FROM HOSPITAL H 
-    INNER JOIN ATENDE A 
-    ON H.CNPJ = A.CNPJ 
-    GROUP BY H.NOME, A.CNPJ 
-    HAVING COUNT(*) > 1
+-- Projeta as salas que tiveram pelo menos uma prescrição e a quantidade
+
+SELECT p.ID_SALA, COUNT(p.ID_PRESCRICAO) AS total_prescricoes
+FROM PRESCRICAO p
+GROUP BY p.ID_SALA
+HAVING COUNT(p.ID_PRESCRICAO) > 0;
+
 
 
 
 -- JUNÇÃO INTERNA
--- Seleciona o nome dos funcionários que são médicos
+-- Projeta  o nome dos funcionários que são médicos
 SELECT DISTINCT F.NOME 
 	FROM FUNCIONARIO F 
     INNER JOIN MEDICO M 
@@ -20,7 +20,7 @@ SELECT DISTINCT F.NOME
 
 
 -- JUNÇÃO EXTERNA
--- Seleciona os hospitais e os números de suas salas
+-- Projeta  os hospitais e os números de suas salas
 SELECT H.NOME, S.NUMERO
 FROM HOSPITAL H 
     LEFT OUTER JOIN SALA S 
@@ -29,7 +29,7 @@ FROM HOSPITAL H
 
 
 -- SEMIJOIN
--- Seleciona salas onde houve prescrição de medicamentos
+-- Projeta  salas onde houve prescrição de medicamentos
 SELECT S.ID_SALA 
 	FROM SALA S 
     WHERE EXISTS
@@ -42,7 +42,7 @@ SELECT S.ID_SALA
 
 
 -- ANTIJOIN
--- Seleciona salas onde não houve a prescrição de medicamentos
+-- Projeta  salas onde não houve a prescrição de medicamentos
 SELECT S.ID_SALA 
 	FROM SALA S 
     WHERE NOT EXISTS
@@ -55,7 +55,7 @@ SELECT S.ID_SALA
 
 
 -- SUBCONSULTA ESCALAR
--- Seleciona funcionários com o salário maior do que a média de todos os funcionários
+-- Projeta  funcionários com o salário maior do que a média de todos os funcionários
 
 SELECT NOME, CPF, SALARIO
 FROM FUNCIONARIO
@@ -67,17 +67,24 @@ WHERE SALARIO > (
 
 
 -- SUBCONSULTA LINHA
--- Seleciona a prescrição que tem o medicamento Omeprazol
+--  Projeta o nome dos pacientes que foram atendidos na mesma sala pelo mesmo médico conforme na primeira prescrição 'PRE01'
+SELECT P.NOME
+	FROM PACIENTE P
+	WHERE P.CPF IN (
+    	SELECT C.CPF_P
+    		FROM CONSULTA C
+    		WHERE (C.ID_SALA, C.CPF_M) = (
+    			SELECT P3.ID_SALA, P3.CPF_M
+    				FROM PRESCRICAO P3
+    				WHERE P3.ID_PRESCRICAO = 'PRE01'
+            )
+    );
 
-SELECT p.ID_PRESCRICAO, p.DOSAGEM, p.DESCRICAO, p.ID_MEDICAMENTO, p.ID_SALA, p.CPF_M, p.CPF_P, p.HORACONSULTA
-FROM PRESCRICAO p
-JOIN MEDICAMENTO m ON p.ID_MEDICAMENTO = m.ID_MEDICAMENTO
-WHERE m.NOME = 'Omeprazol';
 
 
 
 -- SUBCONSULTA TIPO TABELA
--- Seleciona prescrições cujas consultas tem no nome 'rotina'
+-- Projeta  prescrições cujas consultas tem no nome 'rotina'
 
 SELECT ID_PRESCRICAO 
 	FROM PRESCRICAO P 
@@ -92,7 +99,7 @@ SELECT ID_PRESCRICAO
 
 
 -- OPERAÇÃO DE CONJUNTO
--- Seleciona o nome de todos os funcionários que não são médicos
+-- Projeta  o nome de todos os funcionários que não são médicos
 SELECT F.NOME 
 	FROM MEDICO M 
     RIGHT JOIN FUNCIONARIO F 
