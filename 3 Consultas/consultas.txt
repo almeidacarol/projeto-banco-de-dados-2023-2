@@ -67,34 +67,30 @@ WHERE SALARIO > (
 
 
 -- SUBCONSULTA LINHA
---  Projeta o nome dos pacientes que foram atendidos na mesma sala pelo mesmo médico conforme na primeira prescrição 'PRE01'
-SELECT P.NOME
-	FROM PACIENTE P
-	WHERE P.CPF IN (
-    	SELECT C.CPF_P
-    		FROM CONSULTA C
-    		WHERE (C.ID_SALA, C.CPF_M) = (
-    			SELECT P3.ID_SALA, P3.CPF_M
-    				FROM PRESCRICAO P3
-    				WHERE P3.ID_PRESCRICAO = 'PRE01'
-            )
-    );
+--  Projeta o CPF dos pacientes que  tiveram prescrição na mesma sala e mesmo médico da  prescrição 'PRE01'
+
+SELECT DISTINCT C.CPF_P
+	FROM CONSULTA C
+	WHERE (C.ID_SALA, C.CPF_M) = (
+    	SELECT P3.ID_SALA, P3.CPF_M
+    		FROM PRESCRICAO P3
+    		WHERE P3.ID_PRESCRICAO = 'PRE01'
+    )
+
 
 
 
 
 -- SUBCONSULTA TIPO TABELA
--- Projeta  prescrições cujas consultas tem no nome 'rotina'
+-- Projeta nome que fizeram consultas acima de 400 reais.
 
-SELECT ID_PRESCRICAO 
-	FROM PRESCRICAO P 
-    WHERE (P.ID_SALA, P.HORACONSULTA) IN  
-    ( 
-		SELECT C.ID_SALA, C.HORACONSULTA
-			FROM CONSULTA C 
-            WHERE C.DESCRICAO LIKE '%rotina' 
-	);
-
+SELECT F.NOME
+    FROM FUNCIONARIO F
+    WHERE F.CPF IN (
+    	SELECT C.CPF_M
+    		FROM CONSULTA C
+    		WHERE C.VALOR > 400
+    );
 
 
 
