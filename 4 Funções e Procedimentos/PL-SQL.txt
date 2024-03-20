@@ -1,0 +1,168 @@
+-- PL/SQL
+
+-- Quantidade de funcionários que trabalham em mais de um hospital
+CREATE OR REPLACE FUNCTION CONTAR_FUNCIONARIOS_MULTIPLOS_HOSPITAIS
+RETURN NUMBER
+IS
+    V_QTD_FUNCIONARIOS NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO V_QTD_FUNCIONARIOS
+    FROM (
+        SELECT F.CPF
+        FROM FUNCIONARIO F
+        JOIN TRABALHA T ON F.CPF = T.CPF
+        GROUP BY F.CPF
+        HAVING COUNT(DISTINCT T.CNPJ) > 1
+    );
+
+    RETURN V_QTD_FUNCIONARIOS;
+END CONTAR_FUNCIONARIOS_MULTIPLOS_HOSPITAIS;
+--
+SELECT CONTAR_FUNCIONARIOS_MULTIPLOS_HOSPITAIS() AS QTD_FUNCIONARIOS_MULTIPLOS_HOSPITAIS FROM DUAL;
+
+
+-- Quantidade de medicamentos que foram prescritos em uma determinada sala
+CREATE OR REPLACE FUNCTION contar_medicamentos_sala(p_id_sala IN VARCHAR2)
+RETURN NUMBER
+IS
+    v_total_medicamentos NUMBER;
+BEGIN
+    SELECT COUNT(DISTINCT pr.ID_MEDICAMENTO)
+    INTO v_total_medicamentos
+    FROM PRESCRICAO pr
+    WHERE pr.ID_SALA = p_id_sala;
+    
+    RETURN v_total_medicamentos;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 0;  
+END;
+/
+--
+DECLARE
+    v_total_medicamentos NUMBER;
+BEGIN
+    v_total_medicamentos := contar_medicamentos_sala('SALA01'); 
+
+    DBMS_OUTPUT.PUT_LINE('Total de medicamentos na sala: ' || v_total_medicamentos);
+END;
+/
+
+
+-- Calcular o salário médio dos funcionários de um departamento
+CREATE OR REPLACE FUNCTION salario_medio_departamento (p_nome_departamento VARCHAR2) RETURN NUMBER IS
+    v_salario_medio NUMBER;
+BEGIN
+    SELECT AVG(SALARIO) INTO v_salario_medio
+    FROM FUNCIONARIO
+    WHERE CPF IN (
+        SELECT DISTINCT CPF
+        FROM TRABALHA
+        WHERE CNPJ IN (
+            SELECT CNPJ
+            FROM DEPARTAMENTO
+            WHERE NOME = p_nome_departamento
+        )
+    );
+    
+    RETURN v_salario_medio;
+END;
+/
+--    
+DECLARE
+    salario_medio NUMBER;
+BEGIN
+    salario_medio := salario_medio_departamento('Cardiologia');
+    DBMS_OUTPUT.PUT_LINE('O salário médio do departamento de Cardiologia é: ' || salario_medio);
+END;
+/
+
+-- Consultar quantas consultas um determinado paciente teve
+CREATE OR REPLACE PROCEDURE consulta_paciente (p_cpf_paciente VARCHAR2) AS 
+    v_nome_paciente VARCHAR2(100); 
+    v_numero_consultas NUMBER; 
+BEGIN 
+     
+    SELECT NOME INTO v_nome_paciente FROM PACIENTE WHERE CPF = p_cpf_paciente;     
+ 
+    SELECT COUNT(*) INTO v_numero_consultas FROM CONSULTA WHERE CPF_P = p_cpf_paciente; 
+          
+    DBMS_OUTPUT.PUT_LINE('O paciente ' || v_nome_paciente || ' teve ' || v_numero_consultas || ' consultas.'); 
+END; 
+/
+--
+BEGIN
+    consulta_paciente('11111111111');
+END;
+/
+
+--  Dado um MEDICO (CPF), quais medicamentos ele prescreveu
+
+CREATE OR REPLACE PROCEDURE medicamentos_por_medico (
+    cpf_medico IN VARCHAR2,
+    cursor_out OUT SYS_REFCURSOR
+) AS
+BEGIN
+    OPEN cursor_out FOR
+    SELECT DISTINCT ME.ID_MEDICAMENTO, ME.NOME
+    FROM MEDICAMENTO ME
+    JOIN PRESCRICAO P ON ME.ID_MEDICAMENTO = P.ID_MEDICAMENTO
+    WHERE P.CPF_M = cpf_medico;
+END medicamentos_por_medico;
+/
+--
+DECLARE
+    medicamento_cursor SYS_REFCURSOR;
+    v_cpf_medico VARCHAR2(11) := '55578667778';
+    v_id_medicamento VARCHAR2(50);
+    v_nome_medicamento VARCHAR2(255);
+BEGIN
+    medicamentos_por_medico(v_cpf_medico, medicamento_cursor);
+    
+    LOOP
+        FETCH medicamento_cursor INTO v_id_medicamento, v_nome_medicamento;
+        EXIT WHEN medicamento_cursor%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('ID do Medicamento: ' || v_id_medicamento || ', Nome do Medicamento: ' || v_nome_medicamento);
+    END LOOP;
+    
+    CLOSE medicamento_cursor;
+END;
+/
+
+-- Dado um MEDICAMENTO (NOME), quais Médicos e Pacientes ele foi prescrito
+
+CREATE OR REPLACE PROCEDURE medicos_por_medicamento (
+    nome_medicamento IN VARCHAR2,
+    cursor_out OUT SYS_REFCURSOR
+) AS
+BEGIN
+    OPEN cursor_out FOR
+    SELECT DISTINCT P.ID_PRESCRICAO, M.CPF_MEDICO, F.NOME
+    FROM MEDICAMENTO ME
+    JOIN PRESCRICAO P ON ME.ID_MEDICAMENTO = P.ID_MEDICAMENTO
+    JOIN MEDICO M ON P.CPF_M = M.CPF_MEDICO
+    JOIN FUNCIONARIO F ON M.CPF_MEDICO = F.CPF
+    WHERE ME.NOME = nome_medicamento;
+END medicos_por_medicamento;
+/
+--
+DECLARE
+    medicamento_cursor SYS_REFCURSOR;
+    v_nome_medicamento VARCHAR2(255) := 'Omeprazol';
+    v_id_prescricao VARCHAR2(50);
+    v_cpf_medico VARCHAR2(11);
+    v_nome_medico VARCHAR2(100);
+BEGIN
+    medicos_por_medicamento(v_nome_medicamento, medicamento_cursor);
+    
+    LOOP
+        FETCH medicamento_cursor INTO v_id_prescricao, v_cpf_medico, v_nome_medico;
+        EXIT WHEN medicamento_cursor%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('ID da Prescrição: ' || v_id_prescricao || ', CPF do Médico: ' || v_cpf_medico || ', Nome do Médico: ' || v_nome_medico);
+    END LOOP;
+    
+    CLOSE medicamento_cursor;
+END;
+/
+
+
